@@ -10,6 +10,10 @@ sudo docker run --name mongodb -p 37017:27017 -d mongo
 //check the process
 sudo docker ps
 
+//restart docker
+ sudo service docker restart
+
+
 //to start docker container
 sudo docker start container_name  (mongodb as given above)
 
