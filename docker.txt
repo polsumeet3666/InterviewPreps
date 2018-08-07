@@ -1,0 +1,73 @@
+//install mongodb
+sudo docker pull mongo
+
+//start mongo container in docker
+sudo docker run --name mongodb -p 37017:27017 -d mongo
+	--name name of container (value can be anything)
+	-p change default port (changes port from 27017 to 37017)
+	-d to detach or run process in background followed by image name (i.e. mongo)
+
+//check the process
+sudo docker ps
+
+//to start docker container
+sudo docker start container_name  (mongodb as given above)
+
+//Mongodb UI
+download robot 3t 
+
+//nodejs mongodb module
+npm i -S mongodb
+
+//CRUD operation using mongodb node module
+
+
+//Mongoose node module
+its object-document mapper
+define mongodb schema in application layer
+www.mongoosejs.com
+npm i -S mongoose
+
+(node:5915) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+
+fix :  mongoose.connect(config.monogdb.dns, { useNewUrlParser: true })
+
+
+//Redis
+sudo docker pull redis    -  install redis
+sudo docker run --name redis -p 7379:6379 -d redis
+sudo docker ps
+sudo docker start redis
+
+//Redis UI for nodejs
+npm i -g redis-commander
+
+redis-commander --redis-port 7379
+
+//node module
+npm i -S redis
+
+//session in redis node module
+npm i -S connect-redis
+
+
+//mysql
+sudo docker pull mysql
+sudo docker pull mysql:5.7
+sudo docker run --name mysql -p 3406:3306 -e MYSQL_ROOT_PASSWORD=mypassword -d mysql:5.7
+
+//mysql ui
+mysql workbench
+
+//create schema
+//create table
+
+//node module for mysql
+npm i -S mysql2
+
+
+//cassandra
+docker pull cassandra
+//run cassandra
+ sudo docker run --name cassandra -d cassandra
+ sudo docker run -it --link cassandra:cassandra --rm cassandra sh -c 'exec cqlsh "$CASSANDRA_PORT_9042_TCP_ADDR"'

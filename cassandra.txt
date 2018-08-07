@@ -1,0 +1,38 @@
+Setup cassandra on docker
+	//cassandra
+	docker pull cassandra
+	
+	//run cassandra image
+	sudo docker run --name cassandra -d cassandra
+	
+	//start cassandra cqlsh
+	sudo docker run -it --link cassandra:cassandra --rm cassandra sh -c 'exec cqlsh "$CASSANDRA_PORT_9042_TCP_ADDR"'
+
+Notable points
+	coloumn oriented db
+	created at facebook
+	distribution design on amazon's dynamo
+	data desing on google bigdata
+
+Features
+	Elastic scalabilty - add more hardware
+	No single point failure. built in dynamo style replication
+	linearly scalable- increase throughput by increase in node
+	fexible data storage - store
+	write fast
+	support transactions
+    All the nodes in a cluster play the same role.
+    Each node is independent and at the same time interconnected to other nodes.
+    Each node in a cluster can accept read and write requests, regardless of where the data is actually located in the cluster.
+    When a node goes down, read/write requests can be served from other nodes in the network.
+
+Important Notes
+	Cassandra uses the Gossip Protocol in the background to allow the nodes to communicate with each other and detect any faulty nodes in the cluster.
+
+Component
+	Node
+	Data Center collection of related nodes
+	Commit log crash/recovery mechanism. Every write operation is written in this file.
+	Mem table  after commit log data will be written in memory mem tables
+	SSTable disk file where data is flushed    
+
