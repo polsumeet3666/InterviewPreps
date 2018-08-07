@@ -1,0 +1,10 @@
+git.txt
+
+git init
+git add .
+git status
+git commit -m "inital draft"
+git remote add origin https://github.com/polsumeet3666/InterviewPreps.git
+git remote -v
+git pull origin master --allow-unrelated-histories
+git push origin master
