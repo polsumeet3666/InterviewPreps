@@ -36,3 +36,268 @@ Component
 	Mem table  after commit log data will be written in memory mem tables
 	SSTable disk file where data is flushed    
 
+### Write Operation
+* Every write operation -> commit logs -> mem tables (when mem table is full) -> SSTable.
+
+### Read Operation
+* Get value from mem table and check bloom filter to find data from SSTable
+
+### Cluster
+* its outermost container which holds node and replicas
+
+### Keyspace
+* container inside cluster.
+* replication factor - number of replicas
+* replica placement strategy
+	- simple strategy
+	- old network strategy
+	- network topology strategy
+* coloumn family - collection of data rows
+* create keyspace
+	create keyspace demo with replication = {'class':'SimpleStrategy','replication_factor':2};
+* list keyspace
+	describe keyspace;
+
+### CQL/Cqlsh Shell Commands
+* help
+* capture 'filepath' - capture output of query into file
+* capture off
+* consistency
+* describe keyspaces
+* describe tables
+* describe type user-defiend-data-type
+* expand on
+* show host
+* drop keyspace keyspace_name
+* drop table table_name
+* truncate table_name
+
+
+cqlsh:demo> create table emp (
+        ... emp_id int primary key,
+        ... emp_name text,
+        ... emp_tel set<int>,
+        ... emp_city text);
+
+cqlsh:demo> describe table emp;
+
+CREATE TABLE demo.emp (
+    emp_id int PRIMARY KEY,
+    emp_city text,
+    emp_name text,
+    emp_tel set<int>
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = '99PERCENTILE';
+
+
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city | emp_name | emp_tel
+--------+----------+----------+---------
+
+(0 rows)
+cqlsh:demo> show host;  
+Connected to Test Cluster at 172.17.0.2:9042.
+
+cqlsh:demo> alter table emp add emp_email text;
+
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city | emp_email | emp_name | emp_tel
+--------+----------+-----------+----------+---------
+
+(0 rows)
+cqlsh:demo> 
+
+cqlsh:demo> alter table emp drop emp_email;
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city | emp_name | emp_tel
+--------+----------+----------+---------
+
+(0 rows)
+
+
+cqlsh:demo> truncate emp;
+
+cqlsh:demo> begin batch insert into emp (emp_id,emp_city,emp_name,emp_tel) values (1,'mumbai','sumeet',{12121}) apply batch;
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city | emp_name | emp_tel
+--------+----------+----------+---------
+      1 |   mumbai |   sumeet | {12121}
+
+(1 rows)
+
+
+cqlsh:demo> update emp set emp_city='navi mumbai' where emp_id=1;
+
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city    | emp_name | emp_tel
+--------+-------------+----------+---------
+      1 | navi mumbai |   sumeet | {12121}
+
+cqlsh:demo> insert into emp (emp_id,emp_city,emp_name,emp_tel) values (2,'mumbai','swapnil',{1200});
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city    | emp_name | emp_tel
+--------+-------------+----------+---------
+      1 | navi mumbai |   sumeet | {12121}
+      2 |      mumbai |  swapnil |  {1200}
+
+(2 rows)
+cqlsh:demo> select emp_id,emp_name from emp;
+
+ emp_id | emp_name
+--------+----------
+      1 |   sumeet
+      2 |  swapnil
+
+(2 rows)
+
+cqlsh:demo> select emp_id,emp_name from emp where emp_city='mumbai' allow filtering;
+
+ emp_id | emp_name
+--------+----------
+      2 |  swapnil
+
+(1 rows)
+cqlsh:demo> delete from emp where emp_id=2;
+cqlsh:demo> select * from emp;
+
+ emp_id | emp_city    | emp_name | emp_tel
+--------+-------------+----------+---------
+      1 | navi mumbai |   sumeet | {12121}
+
+(1 rows)
+
+
+### CQL collection
+
+* plus(+) and minus(-) operator on collections
+* use square brackets for list []
+* use curly brackets for set {}
+* map {key:value}
+
+cqlsh:demo> create table demo_list (
+        ... name text primary key,
+        ... email list<text>
+        ... );
+cqlsh:demo> describe tables;
+
+demo_list  emp
+
+cqlsh:demo> insert into demo_list (name,email) values ('sumeet',['test1@gmail.com','test2@gmail.com']);
+cqlsh:demo> select * from demo_list;
+
+ name   | email
+--------+----------------------------------------
+ sumeet | ['test1@gmail.com', 'test2@gmail.com']
+
+(1 rows)
+cqlsh:demo> 
+
+* use + operator for adding into list
+
+cqlsh:demo> update demo_list
+        ... set email = email + ['test3@gmail.com']
+        ... where name= 'sumeet';
+cqlsh:demo> select * from demo_list;
+
+ name   | email
+--------+-----------------------------------------------------------
+ sumeet | ['test1@gmail.com', 'test2@gmail.com', 'test3@gmail.com']
+
+(1 rows)
+cqlsh:demo> 
+
+(1 rows)
+
+* use - operator for removing from list
+
+cqlsh:demo> update demo_list set email = email - ['test3@gmail.com'] where name= 'sumeet';
+cqlsh:demo> select * from demo_list;
+
+ name   | email
+--------+----------------------------------------
+ sumeet | ['test1@gmail.com', 'test2@gmail.com']
+
+(1 rows)
+cqlsh:demo> 
+
+
+cqlsh:demo> create table demo_set (
+        ... name text primary key,
+        ... phone set<varint>
+        ... );
+cqlsh:demo> describe tablesl
+
+'tablesl' not found in keyspace 'demo'
+cqlsh:demo> describe tables;
+
+demo_set  demo_list  emp
+
+cqlsh:demo> 
+
+cqlsh:demo> insert into demo_set (name,phone) values ('sumeet',{91000000});
+cqlsh:demo> select * from demo_set;
+
+ name   | phone
+--------+------------
+ sumeet | {91000000}
+
+(1 rows)
+cqlsh:demo>
+
+cqlsh:demo> update demo_set set phone = phone + {92000000} where name='sumeet';
+cqlsh:demo> select * from demo_set;
+
+ name   | phone
+--------+----------------------
+ sumeet | {91000000, 92000000}
+
+(1 rows)
+cqlsh:demo> 
+
+
+cqlsh:demo> create table demo_map (
+        ... name text primary key,
+        ... address map<text,text>
+        ... );
+scqlsh:demo> describe tables;
+
+demo_set  demo_list  demo_map  emp
+
+cqlsh:demo> insert into demo_map (name,address) values ('sumeet',{'home':'navimumbai','office':'bangalore'});
+cqlsh:demo> select * from demo_map;
+
+ name   | address
+--------+-----------------------------------------------
+ sumeet | {'home': 'navimumbai', 'office': 'bangalore'}
+
+(1 rows)
+cqlsh:demo> update demo_map set address = address + {'native':'mumbai'} where name='sumeet';
+cqlsh:demo> select * from demo_map;
+
+ name   | address
+--------+-------------------------------------------------------------------
+ sumeet | {'home': 'navimumbai', 'native': 'mumbai', 'office': 'bangalore'}
+
+(1 rows)
+cqlsh:demo> 
+
+
+
