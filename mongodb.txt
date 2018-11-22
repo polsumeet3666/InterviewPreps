@@ -1,0 +1,280 @@
+# MongoDB
+
+## Setup using docker
+https://hub.docker.com/_/mongo/
+
+## Local setup
+* download zip from website and unzip
+* create data/db folder
+* run ./mongod --dbpath=./data/db    (for mongo demon)
+* run ./mongo (for client shell)
+* install robo3T for graphical UI client
+
+## Intro
+* document oriented database
+* JSON represented.
+* data is stored in BSON(Binary JSON) internally
+* _id is created for every record if not provided during insert.
+
+## Shell cmds
+* default test
+* show dbs - list dbs
+* use demo - create reference to demo db (note actual db is not created at this point in time), db will be created when first doc is inserted.
+
+> show dbs
+admin   0.000GB
+config  0.000GB
+local   0.000GB
+
+> use learning_mongo
+switched to db learning_mongo
+
+> db.cars.insert({"make":"honda"});
+WriteResult({ "nInserted" : 1 })
+
+> show dbs
+admin           0.000GB
+config          0.000GB
+learning_mongo  0.000GB
+local           0.000GB
+
+* show collection  (list all collection in selected db)
+> show collections
+cars
+* we can use js expression in mongo shell
+> var arr = ["one","two","three"]
+
+> arr
+[ "one", "two", "three" ]
+
+> for(i=0;i<100;i++){
+... db.numbers.insert({"number":i})
+... };
+WriteResult({ "nInserted" : 1 })
+
+> show collections;
+cars
+numbers
+
+* count() on collection
+> db.numbers.count();
+100
+
+> db.numbers.find({'number':1});
+{ "_id" : ObjectId("5b6bd8f566e5ae88214abb67"), "number" : 1 }
+
+> db.numbers.find({'number':1}).explain();
+> db.numbers.find({'number':1}).explain("executionStats");
+
+* without index created the above query will scan all records in collection;
+"docsExamined" : 100
+
+* create index
+> db.numbers.createIndex({number:1});
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 1,
+	"numIndexesAfter" : 2,
+	"ok" : 1
+}
+
+* re run above query
+> db.numbers.find({'number':1}).explain("executionStats");
+"keysExamined" : 1,
+
+* mongodb import
+./mongoimport --help	
+
+./mongoimport --db learning_mongo --collection tours --jsonArray --file /opt/tours.json 
+2018-08-09T12:06:54.164+0530	connected to: localhost
+2018-08-09T12:06:54.446+0530	imported 29 documents
+
+* verify data in db
+> use learning_mongo
+switched to db learning_mongo
+> show collections
+cars
+numbers
+tours
+> db.tours.count();
+29
+
+* print output in formatted json
+> db.tours.find({"tourTags":'hiking'}).pretty();
+
+* insert
+> db.tours.insert({
+... "tourName":"the wines of santa cruz",
+... "tourLength":3,
+... "tourPrice":500,
+... "tourDescription":"discover wineries of santa cruz",
+... "tourTags": ["wine","Santa cruz"]
+... });
+WriteResult({ "nInserted" : 1 })
+
+* update
+> db.tours.update({"tourName":"the wines of santa cruz"},
+... {$set : {"tourRegion":"central coast"}});
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+
+* note is $set operator is not used then entire doc is replaced
+* update to set
+> db.tours.update({"tourName":"the wines of santa cruz"}, {"$addToSet": {"tourTags":"broadwalk"}});
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+
+> db.tours.find({"tourName":"the wines of santa cruz"}).pretty();
+{
+	"_id" : ObjectId("5b6be3765275d9a2fc5a8c1f"),
+	"tourName" : "the wines of santa cruz",
+	"tourLength" : 3,
+	"tourPrice" : 500,
+	"tourDescription" : "discover wineries of santa cruz",
+	"tourTags" : [
+		"wine",
+		"Santa cruz",
+		"broadwalk"
+	],
+	"tourRegion" : "central coast"
+}
+> 
+
+* remove
+> db.tours.remove({"tourName":"the wines of santa cruz"});
+WriteResult({ "nRemoved" : 1 })
+
+* drop collection
+> db.tours.drop();
+true
+
+* simple index
+> db.tours.find({"tourPackage":"Taste of California"});
+> db.tours.createIndex({tourPackage:1});
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 1,
+	"numIndexesAfter" : 2,
+	"ok" : 1
+}
+
+
+* complex index
+> db.tours.find({ "tourLength": {$lte:3}, "tourPrice":{$lte:500}}).count();
+10
+> db.tours.createIndex({tourLength:1,tourPrice:1});
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 2,
+	"numIndexesAfter" : 3,
+	"ok" : 1
+}
+* see the explain cmd to check if indexing improved the search
+> db.tours.find({ "tourLength": {$lte:3}, "tourPrice":{$lte:500}}).explain("executionStats");
+
+* remove all
+> db.tours.remove({});
+WriteResult({ "nRemoved" : 29 })
+
+
+## Advanced Topics
+### uniques index
+* create unqiue constrant
+
+> db.tours.createIndex({tourName:1},{unique:true});
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 3,
+	"numIndexesAfter" : 4,
+	"ok" : 1
+}
+> db.tours.insert({"tourName":"One"});
+WriteResult({ "nInserted" : 1 })
+> db.tours.insert({"tourName":"One"});
+WriteResult({
+	"nInserted" : 0,
+	"writeError" : {
+		"code" : 11000,
+		"errmsg" : "E11000 duplicate key error collection: learning_mongo.tours index: tourName_1 dup key: { : \"One\" }"
+	}
+})
+> 
+
+## Projections
+> db.tours.find({},{"tourName":1,_id:0});
+{ "tourName" : "In the Steps of John Muir" }
+{ "tourName" : "Big Sur Retreat" }
+{ "tourName" : "The Death Valley Survivor's Trek" }
+{ "tourName" : "Channel Islands Excursion" }
+{ "tourName" : "Restoration Package" }
+{ "tourName" : "Day Spa Package" }
+
+* second parameter in find is called projection
+* 1 specifiy to show
+* 0 specifiy to hide 
+
+## Sort
+> db.tours.find({},{"tourName":1,"tourPrice":1,_id:0}).sort({"tourPrice":-1});
+{ "tourName" : "Amgen Tour of California Special", "tourPrice" : 6000 }
+{ "tourName" : "Monterey to Santa Barbara Tour", "tourPrice" : 2500 }
+{ "tourPrice" : 1500, "tourName" : "Coastal Experience" }
+{ "tourPrice" : 1200, "tourName" : "Kids L.A. Tour" }
+
+* -1 means decending order
+* 1 means acending order
+
+## Limit
+> db.tours.find({},{"tourName":1,"tourPrice":1,_id:0}).sort({"tourPrice":1}).limit(1);
+{ "tourName" : "Olive Garden Tour", "tourPrice" : 75 }
+
+## Skip
+> db.tours.find({},{"tourName":1,"tourPrice":1,_id:0}).sort({"tourPrice":1}).limit(1).skip(10);
+{ "tourPrice" : 550, "tourName" : "Day Spa Package" }
+* For Paging purpose
+
+## Complex Queries
+
+> db.tours.find({"tourPrice":{$lte: 1000,$gte:800}},{_id:0,tourPrice:1,tourName:1});
+{ "tourPrice" : 900, "tourName" : "Restoration Package" }
+{ "tourName" : "Avila Beach Hot springs", "tourPrice" : 1000 }
+{ "tourPrice" : 1000, "tourName" : "Matilija Hot springs" }
+{ "tourPrice" : 800, "tourName" : "Mammoth Mountain Adventure" }
+{ "tourName" : "Mountain High Lift-off", "tourPrice" : 800 }
+{ "tourName" : "A Week of Wine", "tourPrice" : 850 }
+
+
+## Text Indexes
+* can use regular expression on text indexes
+> db.tours.createIndex({"tourDescription":"text","tourBlurb":"text"});
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 1,
+	"numIndexesAfter" : 2,
+	"ok" : 1
+}
+
+* below query search in text indexs and print textScore from $meta
+
+> db.tours.find({$text : {$search : "wine"}},{_id:0,tourName:1,"score": {$meta:"textScore"}}).sort({score:{$meta:"textScore"}});
+{ "tourName" : "A Week of Wine", "score" : 1.5392156862745099 }
+{ "tourName" : "Paso Robles Artesian Spring", "score" : 0.5151515151515151 }
+{ "tourName" : "Ski Lake Tahoe", "score" : 0.5051546391752577 }
+
+* case sensitive
+> db.tours.find({"tourDescription": {$regex : /backpack/}},{_id:0,tourName:1});
+{ "tourName" : "In the Steps of John Muir" }
+
+* case insensitve (/regex/i)
+> db.tours.find({"tourDescription": {$regex : /backpack/i}},{_id:0,tourName:1});
+{ "tourName" : "In the Steps of John Muir" }
+{ "tourName" : "The Mt. Whitney Climbers Tour" }
+> 
+
+## Aggeration
+
+
+## Replication
+* multiple server copy
+
+
+## Sharding
+* split data in multiple servers
+* horizontal scaling
